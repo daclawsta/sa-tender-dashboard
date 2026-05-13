@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+.env
+*.db
+*.log
+*.egg-info/
+dist/
+build/
+tenders.db
+server.log
+rss_test.xml
+ocds_test.json

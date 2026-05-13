@@ -1,6 +1,10 @@
 # SA Tender Dashboard
 
-A local dashboard for monitoring South Australian government tenders. FastAPI backend + vanilla HTML frontend + SQLite storage. Runs entirely offline with mock data; pluggable to live APIs when available.
+A local dashboard for monitoring **South African** government tenders via the National Treasury eTenders OCDS API.
+
+- **Backend:** FastAPI + SQLite
+- **Frontend:** Vanilla HTML/CSS/JS (no build step)
+- **Data source:** Real-time OCDS API from `ocds-api.etenders.gov.za`
 
 ## Quick start
 
@@ -11,11 +15,18 @@ cd /mnt/c/Users/User/Desktop/tender-dashboard
 
 Open http://localhost:8000
 
+## How it works
+
+1. `ingest_all.py` fetches releases from the SA eTenders OCDS API (last 90 days)
+2. Data is normalised and stored in SQLite (`tenders.db`)
+3. FastAPI serves search/filter/sort endpoints
+4. Frontend renders a responsive table with pagination
+
 ## API endpoints
 
 | Endpoint | Description |
 |---|---|
-| `GET /` | Dashboard UI (frontend.html) |
+| `GET /` | Dashboard UI |
 | `GET /api/stats` | Total counts by status and agency |
 | `GET /api/tenders` | List, search, filter, sort, paginate |
 
@@ -30,34 +41,38 @@ Open http://localhost:8000
 - `sort_by` — `closing_date` | `published_date` | `value_amount` | `title`
 - `sort_order` — `asc` | `desc`
 
+## Ingestion
+
+Run manually:
+```bash
+./venv/bin/python ingest_all.py
+```
+
+Or schedule via cron (runs daily at 06:00):
+```bash
+0 6 * * * cd /mnt/c/Users/User/Desktop/tender-dashboard && ./venv/bin/python ingest_all.py
+```
+
+The ingestion script calls `https://ocds-api.etenders.gov.za/api/OCDSReleases` with `dateFrom` and `dateTo` parameters.
+
 ## Project files
 
 | File | Purpose |
 |---|---|
 | `schema.sql` | SQLite schema |
-| `mock_data.py` | 10 realistic SA tenders (fallback data) |
-| `seed.py` | Creates DB and populates mock data |
 | `api.py` | FastAPI backend |
-| `frontend.html` | Dashboard UI (no build step) |
-| `ingest_all.py` | Ingestion script: OCDS + RSS + mock fallback |
-| `start.sh` | Convenience launch script |
+| `frontend.html` | Dashboard UI |
+| `ingest_all.py` | OCDS API ingestion |
+| `seed.py` | Initialises empty DB |
 | `tenders.db` | Live SQLite database |
-
-## Ingestion / cron
-
-A cron job polls for new tenders every hour:
-- Tries OCDS API first
-- Falls back to RSS
-- Fails gracefully to mock data if both are down
-
-Edit `RSS_URL` and `OCDS_URL` inside `ingest_all.py` to switch from mock to live sources.
 
 ## Stack
 
 - Python 3.11 + FastAPI + Uvicorn
 - SQLite (no separate server)
-- Vanilla HTML / CSS / JS (no framework)
+- Vanilla HTML / CSS / JS
 
-## Status
+## Data source
 
-Currently running on mock data. Real API integration ready — update URLs in `ingest_all.py`.
+National Treasury eTenders Portal: https://data.etenders.gov.za  
+OCDS API Swagger: https://ocds-api.etenders.gov.za/swagger/index.html

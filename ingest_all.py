@@ -1,105 +1,131 @@
+"""South African eTenders OCDS ingestion — pulls real data from etenders.gov.za"""
 import sqlite3
 import os
-import sys
-import requests
-import xml.etree.ElementTree as ET
-from datetime import datetime
+import urllib.request
+import json
+from datetime import datetime, timedelta
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "tenders.db")
-RSS_URL = "https://www.tenders-sa.org/rss.xml"
-OCDS_URL = "https://ocds-api.etenders.gov.za/api/releases"
+API_BASE = "https://ocds-api.etenders.gov.za/api/OCDSReleases"
+
+# Bulk download portal (fallback if API is flaky)
+BULK_PORTAL = "https://data.etenders.gov.za/Home/ReleasesFiles"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-def parse_date(s):
-    if not s: return None
-    for fmt in ("%Y-%m-%d", "%a, %d %b %Y %H:%M:%S %z", "%a, %d %b %Y %H:%M:%S GMT"):
-        try: return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
-        except ValueError: pass
-    try: return datetime.fromisoformat(s).strftime("%Y-%m-%d")
-    except: return None
+def fetch_ocds_releases(date_from: str, date_to: str, page: int = 1, page_size: int = 100):
+    """Fetch releases from SA eTenders OCDS API.
+    date_from and date_to must be YYYY-MM-DD strings.
+    """
+    url = f"{API_BASE}?PageNumber={page}&PageSize={page_size}&dateFrom={date_from}&dateTo={date_to}"
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.load(resp)
 
-def fetch_rss():
-    try:
-        r = requests.get(RSS_URL, timeout=15, headers={"User-Agent":"SA-Tender-Dashboard/1.0"})
-        r.raise_for_status()
-        root = ET.fromstring(r.content)
-        items = []
-        for item in root.findall(".//item"):
-            title = item.findtext("title","").strip()
-            desc = item.findtext("description","").strip()
-            link = item.findtext("link","").strip()
-            pub_date = parse_date(item.findtext("pubDate",""))
-            cat = item.findtext("category","Other")
-            ext_id = link.rstrip("/").split("/")[-1] if link else f"RSS-{abs(hash(title))%100000:05d}"
-            items.append({
-                "external_id": f"RSS-{ext_id}", "title": title, "description": desc,
-                "agency": "Tenders SA", "status": "open", "value_amount": None,
-                "value_currency": "AUD", "published_date": pub_date, "closing_date": None,
-                "location": "South Australia", "category": cat, "source": "rss", "url": link
-            })
-        return items, None
-    except Exception as e:
-        return [], str(e)
+def parse_ocds_to_tender(release: dict) -> dict | None:
+    """Convert an OCDS release into our tender schema."""
+    tender = release.get("tender", {})
+    if not tender:
+        return None
 
-def fetch_ocds():
-    try:
-        r = requests.get(OCDS_URL, params={"perPage":50}, timeout=15)
-        r.raise_for_status()
-        data = r.json()
-        items = []
-        for rel in data.get("releases",[])[:50]:
-            tender = rel.get("tender",{})
-            val = tender.get("value",{})
-            items.append({
-                "external_id": rel.get("ocid",""),
-                "title": tender.get("title","Untitled"),
-                "description": tender.get("description",""),
-                "agency": tender.get("procuringEntity",{}).get("name","SA Government"),
-                "status": tender.get("status","open"),
-                "value_amount": val.get("amount"),
-                "value_currency": val.get("currency","AUD"),
-                "published_date": rel.get("date","").split("T")[0] if rel.get("date") else None,
-                "closing_date": None,
-                "location": "South Australia",
-                "category": tender.get("mainProcurementCategory","Other"),
-                "source": "ocds",
-                "url": tender.get("documents",[{}])[0].get("url","") if tender.get("documents") else ""
-            })
-        return items, None
-    except Exception as e:
-        return [], str(e)
+    period = tender.get("tenderPeriod", {})
+    value = tender.get("value", {})
+    procuring = tender.get("procuringEntity", {})
 
-def ingest():
+    # Try to parse dates
+    closing = period.get("endDate", "")
+    published = period.get("startDate", "")
+
+    # Map OCDS status to our status enum
+    ocds_status = tender.get("status", "")
+    status_map = {
+        "active": "open",
+        "planned": "open",
+        "complete": "closed",
+        "cancelled": "cancelled",
+        "unsuccessful": "closed",
+    }
+    status = status_map.get(ocds_status, "open")
+
+    return {
+        "external_id": release.get("ocid", "").replace("ocds-9t57fa-", ""),
+        "title": tender.get("title", "Untitled"),
+        "description": tender.get("description", ""),
+        "agency": procuring.get("name", "Unknown"),
+        "status": status,
+        "value_amount": value.get("amount", 0),
+        "value_currency": value.get("currency", "ZAR"),
+        "published_date": published[:10] if published else None,
+        "closing_date": closing[:10] if closing else None,
+        "location": tender.get("province", "South Africa"),
+        "category": tender.get("mainProcurementCategory", ""),
+        "source": "ocds",
+        "url": f"https://www.etenders.gov.za/home/opportunity?id={tender.get('id', '')}",
+    }
+
+def ingest_ocds(days_back: int = 90):
+    """Ingest OCDS releases from the last N days."""
+    date_to = datetime.now().strftime("%Y-%m-%d")
+    date_from = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+
+    print(f"Fetching OCDS releases from {date_from} to {date_to}...")
+
+    all_releases = []
+    page = 1
+    while True:
+        try:
+            data = fetch_ocds_releases(date_from, date_to, page=page, page_size=100)
+            releases = data.get("releases", [])
+            if not releases:
+                break
+            all_releases.extend(releases)
+            print(f"  Page {page}: {len(releases)} releases (total so far: {len(all_releases)})")
+            if len(releases) < 100:
+                break
+            page += 1
+        except Exception as e:
+            print(f"  Error on page {page}: {e}")
+            break
+
+    print(f"Total releases fetched: {len(all_releases)}")
+
     conn = get_db()
     c = conn.cursor()
-    total_new = 0
-    sources = [("RSS", fetch_rss), ("OCDS", fetch_ocds)]
-    for name, fetcher in sources:
-        items, err = fetcher()
-        if err:
-            print(f"{name} error: {err}")
+    inserted = 0
+    for rel in all_releases:
+        t = parse_ocds_to_tender(rel)
+        if not t:
             continue
-        new = 0
-        for t in items:
+        try:
             c.execute("""
-                INSERT OR IGNORE INTO tenders
+                INSERT OR REPLACE INTO tenders
                 (external_id, title, description, agency, status, value_amount, value_currency,
                  published_date, closing_date, location, category, source, url)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (t["external_id"], t["title"], t["description"], t["agency"], t["status"],
-                  t["value_amount"], t["value_currency"], t["published_date"],
-                  t["closing_date"], t["location"], t["category"], t["source"], t["url"]))
-            if c.rowcount: new += 1
-        total_new += new
-        print(f"{name}: {new} new, {len(items)} fetched")
+            """, (
+                t["external_id"], t["title"], t["description"], t["agency"],
+                t["status"], t["value_amount"], t["value_currency"],
+                t["published_date"], t["closing_date"], t["location"],
+                t["category"], t["source"], t["url"]
+            ))
+            inserted += 1
+        except Exception as e:
+            print(f"  Insert error: {e}")
     conn.commit()
+    total = c.execute("SELECT COUNT(*) FROM tenders WHERE source='ocds'").fetchone()[0]
     conn.close()
-    print(f"Total new tenders: {total_new}")
-    return total_new
+    print(f"Inserted/updated: {inserted}. Total OCDS tenders in DB: {total}")
+    return inserted
+
+def run_ingestion():
+    """Main entry point for cron job."""
+    print(f"=== SA Tender Ingestion started at {datetime.now().isoformat()} ===")
+    count = ingest_ocds(days_back=90)
+    print(f"=== Done. {count} tenders processed ===")
+    return count
 
 if __name__ == "__main__":
-    ingest()
+    run_ingestion()

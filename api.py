@@ -21,8 +21,8 @@ def list_tenders(
     category: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(10, ge=1, le=100),
-    sort_by: str = Query("closing_date", regex="^(closing_date|published_date|value_amount|title)$"),
-    sort_order: str = Query("asc", regex="^(asc|desc)$")
+    sort_by: str = Query("closing_date", pattern="^(closing_date|published_date|value_amount|title)$"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$")
 ):
     conn = get_db()
     c = conn.cursor()
