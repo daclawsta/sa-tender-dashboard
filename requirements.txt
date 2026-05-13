@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+requests
+feedparser
+python-dateutil
+jinja2
+aiofiles

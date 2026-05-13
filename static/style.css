@@ -1,0 +1,195 @@
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --text: #1a1a2e;
+  --muted: #6b7280;
+  --primary: #007A5E;
+  --primary-light: #e6f4f1;
+  --accent: #FFB81C;
+  --danger: #dc2626;
+  --border: #e5e7eb;
+  --radius: 10px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 16px 40px; }
+
+/* Header */
+header { margin-bottom: 24px; }
+header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.3px; }
+.subtitle { color: var(--muted); font-size: 0.95rem; margin-top: 2px; }
+
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-value { display: block; font-size: 1.35rem; font-weight: 700; color: var(--primary); }
+.stat-label { display: block; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
+
+/* Controls */
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.search-row, .filters-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.filters-row { margin-top: 12px; }
+
+input[type="text"], select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+input[type="text"]:focus, select:focus { border-color: var(--primary); }
+input[type="text"] { flex: 1 1 260px; min-width: 200px; }
+select { flex: 1 1 140px; min-width: 130px; }
+
+button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .05s, opacity .15s;
+}
+button:active { transform: translateY(1px); }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: #f3f4f6; color: var(--text); border: 1px solid var(--border); }
+.btn-accent { background: var(--accent); color: #1a1a2e; }
+
+/* Results */
+.results-header { margin-bottom: 12px; font-size: 0.9rem; color: var(--muted); }
+
+.tender-list { display: flex; flex-direction: column; gap: 14px; }
+
+.tender-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+  transition: box-shadow .15s;
+}
+.tender-card:hover { box-shadow: var(--shadow-md); }
+
+.tender-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.tender-title { font-size: 1.05rem; font-weight: 600; line-height: 1.35; flex: 1; }
+
+.tender-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tender-status.active { background: #dcfce7; color: #166534; }
+.tender-status.complete { background: #dbeafe; color: #1e40af; }
+.tender-status.cancelled { background: #fee2e2; color: #991b1b; }
+.tender-status.planning { background: #fef3c7; color: #92400e; }
+.tender-status.unknown { background: #f3f4f6; color: #4b5563; }
+
+.tender-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.meta-pill {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid #c5e8df;
+}
+.meta-pill.source { background: #f3f4f6; color: var(--muted); border-color: var(--border); }
+.meta-pill.ref { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+
+.tender-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 14px; line-height: 1.5; }
+
+.tender-footer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.footer-col { display: flex; flex-direction: column; }
+.footer-col .label { font-size: 0.72rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.3px; }
+.footer-col .value { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.footer-col .value.urgent { color: var(--danger); }
+.footer-col.actions { justify-content: center; }
+
+.btn-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+.btn-link:hover { text-decoration: underline; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+.page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-ellipsis { color: var(--muted); padding: 0 4px; }
+
+/* States */
+.loading, .empty, .error { text-align: center; padding: 40px 20px; color: var(--muted); }
+.error { color: var(--danger); }
+
+/* Footer */
+footer { margin-top: 40px; text-align: center; font-size: 0.82rem; color: var(--muted); }
+footer a { color: var(--primary); text-decoration: none; }
+
+/* Responsive */
+@media (max-width: 720px) {
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .tender-header { flex-direction: column; }
+  .search-row, .filters-row { flex-direction: column; align-items: stretch; }
+  input[type="text"], select { width: 100%; }
+}
