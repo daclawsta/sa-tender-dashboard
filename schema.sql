@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS tenders (
     closing_date    TEXT,
     location        TEXT DEFAULT 'South Africa',
     category        TEXT,
-    source          TEXT CHECK(source IN ('ocds','rss','manual')) DEFAULT 'ocds',
+    source          TEXT CHECK(source IN ('ocds','rss','manual','etenders_web')) DEFAULT 'etenders_web',
     url             TEXT,
     documents       TEXT,  -- JSON array of document links from OCDS
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
