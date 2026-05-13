@@ -4,6 +4,7 @@ import os
 import urllib.request
 import json
 from datetime import datetime
+from urllib.parse import quote
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "tenders.db")
 API_URL = "https://www.etenders.gov.za/Home/PaginatedTenderOpportunities"
@@ -27,7 +28,7 @@ def parse_tender(item):
     documents = json.dumps([
         {
             "title": d.get("fileName", ""),
-            "url": f"https://www.etenders.gov.za/home/Download?blobName={d.get('supportDocumentID')}&downloadedFileName={d.get('fileName')}"
+            "url": f"https://www.etenders.gov.za/home/Download/?blobName={d.get('supportDocumentID')}{d.get('extension', '.pdf')}&downloadedFileName={quote(d.get('fileName', ''), safe='')}"
         }
         for d in docs if d.get("supportDocumentID")
     ]) if docs else None
