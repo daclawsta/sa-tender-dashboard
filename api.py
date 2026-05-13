@@ -1,7 +1,7 @@
 import sqlite3
 import os
+import json
 from fastapi import FastAPI, Query
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from typing import Optional
 

@@ -99,12 +99,16 @@ async function load(page=1) {
         <td data-label="Status"><span class="status ${t.status}">${t.status}</span></td>
         <td data-label="Value" class="value">${fmt(t.value_amount)} ${t.value_currency}</td>
         <td data-label="Closing">${t.closing_date||'—'}</td>
-        <td data-label="Link"><a class="link" href="${t.url||'#'}" target="_blank">Open →</a></td>
+        <td data-label="Link">${t.url ? `<a class="link" href="${t.url}" target="_blank">Open →</a>` : (t.documents ? docLinks(JSON.parse(t.documents)) : '—')}</td>
       </tr>`).join('');
   }
   renderPages();
 }
-function fmt(n){ if(n==null) return '—'; return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(n); }
+function docLinks(docs) {
+  if (!docs || !docs.length) return '—';
+  return docs.slice(0, 2).map(d => `<a class="link" href="${d.url}" target="_blank" title="${d.title}">Doc →</a>`).join(' ');
+}
+function fmt(n){ if(n==null) return '—'; return new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0}).format(n); }
 function renderPages(){
   const pages = Math.ceil(state.total/state.per_page)||1;
   const el = document.getElementById('pages');

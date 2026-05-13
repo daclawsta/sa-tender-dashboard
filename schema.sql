@@ -8,13 +8,14 @@ CREATE TABLE IF NOT EXISTS tenders (
     agency          TEXT,
     status          TEXT CHECK(status IN ('open','closed','cancelled','awarded')) DEFAULT 'open',
     value_amount    REAL,
-    value_currency  TEXT DEFAULT 'AUD',
+    value_currency  TEXT DEFAULT 'ZAR',
     published_date  TEXT,
     closing_date    TEXT,
-    location        TEXT DEFAULT 'South Australia',
+    location        TEXT DEFAULT 'South Africa',
     category        TEXT,
-    source          TEXT CHECK(source IN ('ocds','rss','manual','mock')) DEFAULT 'mock',
+    source          TEXT CHECK(source IN ('ocds','rss','manual')) DEFAULT 'ocds',
     url             TEXT,
+    documents       TEXT,  -- JSON array of document links from OCDS
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );

@@ -63,7 +63,12 @@ def parse_ocds_to_tender(release: dict) -> dict | None:
         "location": tender.get("province", "South Africa"),
         "category": tender.get("mainProcurementCategory", ""),
         "source": "ocds",
-        "url": f"https://www.etenders.gov.za/home/opportunity?id={tender.get('id', '')}",
+        "url": None,  # eTenders.gov.za SPA has no direct tender URLs
+        "documents": json.dumps([
+            {"title": d.get("title", ""), "url": d.get("url", "")}
+            for d in tender.get("documents", [])
+            if d.get("url")
+        ]) if tender.get("documents") else None,
     }
 
 def ingest_ocds(days_back: int = 90):
@@ -103,13 +108,13 @@ def ingest_ocds(days_back: int = 90):
             c.execute("""
                 INSERT OR REPLACE INTO tenders
                 (external_id, title, description, agency, status, value_amount, value_currency,
-                 published_date, closing_date, location, category, source, url)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 published_date, closing_date, location, category, source, url, documents)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 t["external_id"], t["title"], t["description"], t["agency"],
                 t["status"], t["value_amount"], t["value_currency"],
                 t["published_date"], t["closing_date"], t["location"],
-                t["category"], t["source"], t["url"]
+                t["category"], t["source"], t["url"], t.get("documents")
             ))
             inserted += 1
         except Exception as e:
